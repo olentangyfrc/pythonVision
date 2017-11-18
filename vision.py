@@ -9,7 +9,6 @@ from picamera import PiCamera
 from networktables import NetworkTables
 
 
-
 def picamvidopencv():
     # initialize the camera and grab a reference to the raw camera capture
     camera = PiCamera()
@@ -22,10 +21,9 @@ def picamvidopencv():
     contours_big = 0
     contours_small = 0
     distance = 0
-    target_width = 7.5
-    target_height = 6.5
-    tape = 2  # tape width
-
+    target_width = 12
+    target_height = 12
+    tape = 2.25  # tape width
 
     # initialize network tables
     NetworkTables.initialize(server='10.46.11.25')
@@ -34,7 +32,25 @@ def picamvidopencv():
     # allow the camera to warmup
     time.sleep(0.1)
 
+    # (1) Position of tapeEdgeX, tapeEdgeY
+    # (2) Position of tapeEdgeX + largeCropWidth, tapeEdgeY + largeCropHeight
+    #     largeCrop is a crop from (1) to (2)
+    #     smallCrop is a crop from (3) to (4)
+
+    # (1)---------------------
+    #  |   (3)-----------    |
+    #  |    |           |    |
+    #  |    |           |    |
+    #  |    -----------(4)   |
+    #  ---------------------(2)
+
     # capture frames from the camera
+
+    def findTapePixels(originalPixels, dimensionInInches):
+        #Returns the number of pixels that make up the tape
+        ratio = (dimensionInInches - tape * 2)/dimensionInInches
+        return int((originalPixels - (originalPixels * ratio))/2)
+
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         image = frame.array
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -44,42 +60,45 @@ def picamvidopencv():
         phase1 = mask.copy()
         phase2 = mask.copy()
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-        crop = phase1[100:300, 100:500]
+        largeCrop = phase1[100:300, 100:500]
 
         if len(contours) > 0:
             contours_big = 0
             contours_small = 0
             for contour in contours:
-                bx, by, bw, bh = cv2.boundingRect(contour)
-                if (bw * bh) > 100:
-                    if (bw / bh) < 1.3 and (bw / bh) > 0.9:
-                        crop = phase1[by:(by+bh), bx:(bx+bw)]
-                        cw = int(bw * (target_width - tape) / target_width)   # cw is crop width
-                        ch = int(bh * (target_height - tape) / target_height)   # cw is crop height
-                        subcrop = crop[0:ch, 0:cw]
-                        croppx = cv2.countNonZero(crop)
-                        subcroppx = cv2.countNonZero(subcrop)
-                        print "act", (croppx - subcroppx)
-                        print "bxh", bw*bh
-                        print "cxh", cw*ch
-                        if (croppx - subcroppx) > (0.5 * (bw*bh - cw*ch)):   # L shape is 80% filled
-                            if (subcroppx) < (0.2 * (cw*ch)):   # non-tape part is less than 20% filled
+                tapeEdgeX, tapeEdgeY, largeCropWidth, largeCropHeight = cv2.boundingRect(contour)
+                if (largeCropWidth * largeCropHeight) > 100: #if the area is greater than 100, used to remove single pixels
+                    if (largeCropWidth / largeCropHeight) < 1.2 and (largeCropWidth / largeCropHeight) > 0.8: #ratios used when determining angles
+                        largeCrop = phase1[tapeEdgeY:(tapeEdgeY + largeCropHeight), tapeEdgeX:(tapeEdgeX + largeCropWidth)]
+                        tapeWidthPixels = findTapePixels(largeCropWidth, target_width)
+                        tapeHeightPixels = findTapePixels(largeCropHeight, target_height)
+                        smallCropWidth = largeCropWidth - tapeWidthPixels * 2 # cw is smallCrop width
+                        smallCropHeight = largeCropHeight - tapeHeightPixels * 2  #int(tapeEdgeHeight * (target_height - tape - tape) / target_height)   # cw is largeCrop height
+                        smallCrop = largeCrop[tapeHeightPixels:smallCropHeight + tapeHeightPixels, tapeWidthPixels:smallCropWidth + tapeWidthPixels,]
+                        whitePixelsInLarge = cv2.countNonZero(largeCrop)
+                        whitePixelsInSmall = cv2.countNonZero(smallCrop)
+                        print "act", (whitePixelsInLarge - whitePixelsInSmall)
+                        print "bxh", largeCropWidth * largeCropHeight
+                        print "cxh", smallCropWidth*smallCropHeight
+                        if (whitePixelsInLarge - whitePixelsInSmall) > (0.25 * (largeCropWidth*largeCropHeight - smallCropWidth*smallCropHeight)):   # tape is 20% filled
+                            if (whitePixelsInSmall) < (0.1 * (smallCropWidth*smallCropHeight)):   # non-tape part is less than 10% filled
                                 if toggle_rectangles:
-                                    cv2.rectangle(image, (bx, by), (bx + bw, by + bh), (0, 0, 255), 5)
-                                mid = bx + (bw/2)
+                                       cv2.rectangle(image, (tapeEdgeX, tapeEdgeY), (tapeEdgeX + largeCropWidth, tapeEdgeY + largeCropHeight), (0, 0, 255), 1)
+                                       cv2.rectangle(image, (tapeEdgeX + tapeWidthPixels, tapeEdgeY + tapeHeightPixels), (tapeEdgeX + tapeWidthPixels + smallCropWidth, tapeEdgeY + tapeHeightPixels + smallCropHeight), (255,0,0), 1)
+                                mid = tapeEdgeX + (largeCropWidth/2)
                                 offset = 320 - mid
                                 angle = offset * (62.2 / 640)
-                                distance = 3770 / bw
+                                distance = 3770 / largeCropWidth
                                 contours_big += 1
                                 nettable.putNumber('angle', float(angle))
-                else:
-                    sx,sy,sw,sh = cv2.boundingRect(contour)
-                    if toggle_rectangles:
-                        cv2.rectangle(image, (sx, sy), (sx + sw, sy + sh), (255, 0, 0), 2)
-                    contours_small += 1
+                #else:
+                #    sx,sy,sw,sh = cv2.boundingRect(contour)
+                #    if toggle_rectangles:
+                #        cv2.rectangle(image, (sx, sy), (sx + sw, sy + sh), (255, 0, 0), 2)
+                #    contours_small += 1
 
         if contours_big == 1:
-            cv2.putText(image, str(bw) + "," + str(bh), (320, 420), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1, 8)
+            cv2.putText(image, str(largeCropWidth) + "," + str(largeCropHeight), (320, 420), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1, 8)
             cv2.putText(image, str(angle), (320, 400), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1, 8)
             cv2.putText(image, str(distance), (320, 440), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1, 8)
 
@@ -97,21 +116,21 @@ def picamvidopencv():
             toggle_rectangles = not toggle_rectangles
 
         # Marker
-        if key == ord("i"):
+        if key == ord("i"): #up
             crosshair[1] += -1
-        if key == ord("m"):
+        if key == ord("k"): #down
             crosshair[1] += 1
-        if key == ord("j"):
+        if key == ord("j"): #left
             crosshair[0] += -1
-        if key == ord("k"):
+        if key == ord("l"): #right
             crosshair[0] += 1
         if key == ord("I"):
             crosshair[1] += -10
-        if key == ord("M"):
+        if key == ord("K"):
             crosshair[1] += 10
         if key == ord("J"):
             crosshair[0] += -10
-        if key == ord("K"):
+        if key == ord("L"):
             crosshair[0] += 10
 
         cv2.putText(image, "Contours:" + str(len(contours)), (0, 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1, 8)
