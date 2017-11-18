@@ -7,6 +7,7 @@ import numpy as np
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 from networktables import NetworkTables
+import argparse
 
 
 def picamvidopencv():
@@ -14,7 +15,7 @@ def picamvidopencv():
     camera = PiCamera()
     camera.resolution = (640, 480)
     camera.framerate = 32
-    camera.shutter_speed = 18000  # 0 to 31163; 0 is auto
+    camera.shutter_speed = int(options.shutter)  # 0 to 31163; 0 is auto
     rawCapture = PiRGBArray(camera, size=(640, 480))
     crosshair = [320, 240]
     toggle_rectangles = True
@@ -23,7 +24,7 @@ def picamvidopencv():
     distance = 0
     target_width = 12
     target_height = 12
-    tape = 2.25  # tape width
+    tape = float(options.tape_width)  # tape width
 
     # initialize network tables
     NetworkTables.initialize(server='10.46.11.25')
@@ -77,9 +78,9 @@ def picamvidopencv():
                         smallCrop = largeCrop[tapeHeightPixels:smallCropHeight + tapeHeightPixels, tapeWidthPixels:smallCropWidth + tapeWidthPixels,]
                         whitePixelsInLarge = cv2.countNonZero(largeCrop)
                         whitePixelsInSmall = cv2.countNonZero(smallCrop)
-                        print "act", (whitePixelsInLarge - whitePixelsInSmall)
-                        print "bxh", largeCropWidth * largeCropHeight
-                        print "cxh", smallCropWidth*smallCropHeight
+                        # print "act", (whitePixelsInLarge - whitePixelsInSmall)
+                        # print "bxh", largeCropWidth * largeCropHeight
+                        # print "cxh", smallCropWidth*smallCropHeight
                         if (whitePixelsInLarge - whitePixelsInSmall) > (0.25 * (largeCropWidth*largeCropHeight - smallCropWidth*smallCropHeight)):   # tape is 20% filled
                             if (whitePixelsInSmall) < (0.1 * (smallCropWidth*smallCropHeight)):   # non-tape part is less than 10% filled
                                 if toggle_rectangles:
@@ -156,5 +157,12 @@ def main():
     picamvidopencv()
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', action='store', dest='shutter',
+                        default=20000,
+                        help='Select the shutter speed (0-31163)')
+    parser.add_argument('-t', action='store', dest='tape_width',
+                        default=2.25,
+                        help='Select the tape width to detect')
+    options = parser.parse_args()
     main()
-
