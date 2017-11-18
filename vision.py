@@ -57,7 +57,7 @@ def picamvidopencv():
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
         # Threshold the HSV image to get only green colors
-        mask = cv2.inRange(hsv, np.array([50, 50, 150]), np.array([100, 255, 255]))
+        mask = cv2.inRange(hsv, np.array([35, 50, 150]), np.array([80, 255, 255]))
         phase1 = mask.copy()
         phase2 = mask.copy()
         contours, hierarchy = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
