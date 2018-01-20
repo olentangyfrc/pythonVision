@@ -98,20 +98,15 @@ def picamvidopencv():
                                 distance = ((heightTape * 480/2)/h3)/(math.tan(fieldOfView)) #Perpendicular distance
                                 realDistance = distance/math.cos(abs(math.radians(angle))) #Accounts for if the tape is off to the side (hypotenuse distance)
 
-                                #Send Angle
+                                # Publish angle & Distance
                                 nettable.putNumber('angle', float(angle))
+                                nettable.putNumber('distance', float(realDistance))
+                                nettable.putString('status', 'Found')
+                                cv2.putText(image, "Angle: " + str(angle), (200, 400), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 3, 8)
+                                cv2.putText(image, "Distance: " + str(realDistance), (200, 440), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 3, 8)
 
-
-
-
-
-        if centerX != 0 and centerY != 0:
-            cv2.putText(image, "Angle: " + str(angle), (200, 400), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 3, 8)
-            cv2.putText(image, "Distance: " + str(realDistance), (200, 440), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 3, 8)
-            #cv2.putText(image, "Real Distance: " + str(realDistance), (200, 360), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 3, 8)
-            #cv2.putText(image, str(w) + "," + str(h), (320, 420), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1, 8)
-            #cv2.putText(image, str(angle), (320, 400), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1, 8)
-            #cv2.putText(image, str(distance), (320, 440), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1, 8)
+                            else:
+                                nettable.putString('status', 'Not Found')
 
 
 
