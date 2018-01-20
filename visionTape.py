@@ -25,7 +25,7 @@ def picamvidopencv():
     toggle_rectangles = True
 
     # initialize network tables
-    NetworkTables.initialize(server='10.46.11.25')
+    NetworkTables.initialize(server='10.46.11.2')
     nettable = NetworkTables.getTable("Vision")
 
     # allow the camera to warmup
