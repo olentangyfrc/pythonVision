@@ -24,6 +24,10 @@ def picamvidopencv():
     crosshair = [320, 240]
     toggle_rectangles = True
 
+    angle = 0.0
+    realDistance = 0.0
+    status = "Not Found"
+
     # initialize network tables
     NetworkTables.initialize(server='10.46.11.2')
     nettable = NetworkTables.getTable("Vision")
@@ -42,6 +46,10 @@ def picamvidopencv():
         image = frame.array
         centerX = 0
         centerY = 0
+
+        angle = 0.0
+        realDistance = 0.0
+        status = "Not Found"
 
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
@@ -98,16 +106,16 @@ def picamvidopencv():
                                 distance = ((heightTape * 480/2)/h3)/(math.tan(fieldOfView)) #Perpendicular distance
                                 realDistance = distance/math.cos(abs(math.radians(angle))) #Accounts for if the tape is off to the side (hypotenuse distance)
 
-                                # Publish angle & Distance
-                                nettable.putNumber('angle', float(angle))
-                                nettable.putNumber('distance', float(realDistance))
-                                nettable.putString('status', 'Found')
-                                cv2.putText(image, "Angle: " + str(angle), (200, 400), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 3, 8)
-                                cv2.putText(image, "Distance: " + str(realDistance), (200, 440), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 3, 8)
+                                status = "Found"
 
-                            else:
-                                nettable.putString('status', 'Not Found')
 
+        # Publish Angle & Distance
+        nettable.putNumber('angle', float(angle))
+        nettable.putNumber('distance', float(realDistance))
+        nettable.putString('status', status)
+        cv2.putText(image, "Angle: " + str(angle), (200, 400), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 3, 8)
+        cv2.putText(image, "Distance: " + str(realDistance), (200, 420), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 3, 8)
+        cv2.putText(image, status, (200, 440), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 3, 8)
 
 
         key = cv2.waitKey(1) & 0xFF
