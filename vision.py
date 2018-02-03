@@ -20,6 +20,10 @@ from networktables import NetworkTables
 # 2 in width is 7.368 pixels
 # 56.3 pixel for 15.3 viewable inches
 
+#Camera Variables
+fieldOfView = math.radians(48.8/2) # input degrees
+heightBox = 11
+
 #Cube Variables
 vary = 60
 yellowLower = (27 - vary,255 - vary, 150 - vary)#(29, 86, 6)
@@ -33,6 +37,7 @@ allow = 3  # number of widths it can vary
 
 def findCube(image):
     angle = 0.0
+    horizontalDistance = 0.0
     distance = 0.0
     found = False
 
@@ -56,13 +61,20 @@ def findCube(image):
 
                 offset = 320 - cx
                 angle = offset * (62.2 / 640)
+
+                straightDistance = ((heightBox * 480 / 2) / h) / (math.tan(fieldOfView))  # Perpendicular distance
+                distance = straightDistance / math.cos(abs(math.radians(angle)))
+                horizontalDistance = math.sqrt(distance * distance - straightDistance * straightDistance)
+
                 found = True
-                return found, angle, distance, len(contours), hsv, phase1
-    return found, angle, distance, len(contours), hsv, phase1
+
+                return found, angle, distance, horizontalDistance, len(contours), hsv, phase1
+    return found, angle, distance, horizontalDistance, len(contours), hsv, phase1
 
 def findTape(image):
     angle = 0.0
     distance = 0.0
+    horizontalDistance = 0.0
     found = False
 
     # Adjust image
@@ -115,17 +127,18 @@ def findTape(image):
                             length = ((heightTape * 480 / 2) / h3)
                             straightDistance = ((heightTape * 480 / 2) / h3) / (math.tan(fieldOfView))  # Perpendicular distance
                             distance = straightDistance / math.cos(abs(math.radians(angle)))  # Accounts for if the tape is off to the side (hypotenuse distance)
+                            horizontalDistance = math.sqrt(distance * distance - straightDistance * straightDistance)
 
                             found = True
-                            return found, angle, distance, len(contours), hsv, phase1
-    return found, angle, distance, len(contours), hsv, phase1
+                            return found, angle, distance, horizontalDistance, len(contours), hsv, phase1
+    return found, angle, distance, horizontalDistance, len(contours), hsv, phase1
 
 def picamvidopencv():
     # initialize the camera and grab a reference to the raw camera capture
     camera = PiCamera()
     camera.resolution = (640, 480)
     camera.framerate = 32
-    camera.shutter_speed = 2448 #18000  # 0 to 31163; 0 is auto
+    camera.shutter_speed = 18000 #18000 for cube #2448 for Tape
     rawCapture = PiRGBArray(camera, size=(640, 480))
     crosshair = [320, 240]
     toggle_rectangles = True
@@ -143,18 +156,20 @@ def picamvidopencv():
 
         #Determine what to look for based on networktables
         if True:
-            found, angle, distance, contoursLength, hsv, phase1 = findTape(image, minArea, maxDist, allow)
+            found, angle, distance, horizontalDistance, contoursLength, hsv, phase1 = findCube(image)
         else:
-            found, angle, distance, contoursLength, hsv, phase1 = findCube(image, minArea, maxDist, allow)
+            found, angle, distance, horizontalDistance, contoursLength, hsv, phase1 = findTape(image)
 
         # Publish Angle & Distance
         nettable.putNumber('angle', float(angle))
+        nettable.putNumber('horizontalDistance', float(horizontalDistance))
         nettable.putNumber('distance', float(distance))
         nettable.putBoolean('found', found)
 
         if options.show:
             cv2.putText(image, "Angle: " + str(angle), (200, 400), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 3, 8)
             cv2.putText(image, "Distance: " + str(distance), (200, 420), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255),3, 8)
+            cv2.putText(image, "H Distance: " + str(horizontalDistance), (200, 380), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255),3, 8)
             cv2.putText(image, str(found), (200, 440), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 3, 8)
             cv2.putText(image, "Contours:" + str(contoursLength), (0, 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1,8)
             cv2.putText(image, "(S)hutter: " + str(camera.shutter_speed), (0, 40), cv2.FONT_HERSHEY_PLAIN, 1, (255, 255, 255), 1, 8)
