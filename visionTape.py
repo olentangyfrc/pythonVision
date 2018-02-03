@@ -24,10 +24,6 @@ def picamvidopencv():
     crosshair = [320, 240]
     toggle_rectangles = True
 
-    angle = 0.0
-    realDistance = 0.0
-    found = False
-
     # initialize network tables
     NetworkTables.initialize(server='10.46.11.2')
     nettable = NetworkTables.getTable("Vision")
@@ -40,12 +36,8 @@ def picamvidopencv():
     maxDist = 3 # distance between 1 contour and another in widths
     allow = 3 # number of widths it can vary
 
-
-
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         image = frame.array
-        centerX = 0
-        centerY = 0
 
         angle = 0.0
         realDistance = 0.0

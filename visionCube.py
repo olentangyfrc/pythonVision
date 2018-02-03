@@ -15,7 +15,6 @@ from networktables import NetworkTables
 vary = 60
 yellowLower = (27 - vary,255 - vary, 150 - vary)#(29, 86, 6)
 yellowUpper = (27 + vary,255 + vary, 150 + vary)##(35 + vary,255 + vary,255 + vary)#(64, 255, 255)
-
 minSize = 150 # of contour, incase there are two
 
 
@@ -37,11 +36,12 @@ def mainMethod():
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         # grab the current frame
         image = frame.array
-        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
 
         # construct a mask for the color "green", then perform
         # a series of dilations and erosions to remove any small
         # blobs left in the mask
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, yellowLower, yellowUpper)
         mask = cv2.blur(mask, (10,10))
         mask = cv2.erode(mask, None, iterations=20)
