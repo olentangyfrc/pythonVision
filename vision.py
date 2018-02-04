@@ -54,7 +54,7 @@ def findCube(image):
     if len(contours) > 0:
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
-            if w * h >= minSize:
+            if w * h >= minSize and math.abs(w/h) > 0.9 and math.abs(w/h) < 1.1:
                 cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 3)
                 #box = image[y:(y + h), x:(x + w)] #show a frame only of the box
                 cx, cy = x + w / 2, y + h / 2
