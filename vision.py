@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-#TODO do inrange before erode and dilate#
 #TODO use networktables to see which one to look for#
 
 
@@ -45,7 +44,7 @@ def findCube(image):
     mask = cv2.inRange(hsv, yellowLower, yellowUpper)
     mask = cv2.blur(mask, (10, 10))
     mask = cv2.erode(mask, None, iterations=20)
-    mask = cv2.dilate(mask, None, iterations=20)
+    mask = cv2.dilate(mask, None, iterations=25)
     ret, mask = cv2.threshold(mask, 1, 255, cv2.THRESH_BINARY)
     phase1 = mask.copy()
 
@@ -54,7 +53,9 @@ def findCube(image):
     if len(contours) > 0:
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
-            if w * h >= minSize and math.abs(w/h) > 0.9 and math.abs(w/h) < 1.1:
+            #If facing head on the ratio of h/w is 11/13    ~= 0.84615384615
+            #If facing at 45 degrees the ratio of h/w is 11/(13 * sqrt(2)) ~= 0.59832112254
+            if w * h >= minSize and abs(h/w) > 0.5 and abs(h/w) < .95:
                 cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 3)
                 #box = image[y:(y + h), x:(x + w)] #show a frame only of the box
                 cx, cy = x + w / 2, y + h / 2
@@ -79,9 +80,10 @@ def findTape(image):
 
     # Adjust image
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(mask, np.array([50, 50, 125]), np.array([100, 255, 255]))
     mask = cv2.erode(hsv, None, iterations=2)
     mask = cv2.dilate(mask, None, iterations=2)
-    mask = cv2.inRange(mask, np.array([50, 50, 125]), np.array([100, 255, 255]))
+
 
     phase1 = mask.copy()
     contours, hierarchy = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
