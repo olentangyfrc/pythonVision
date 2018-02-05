@@ -24,7 +24,7 @@ fieldOfView = math.radians(48.8/2) # input degrees
 heightBox = 11
 
 #Cube Variables
-vary = 60
+vary = 75
 yellowLower = (27 - vary,255 - vary, 150 - vary)#(29, 86, 6)
 yellowUpper = (27 + vary,255 + vary, 150 + vary)##(35 + vary,255 + vary,255 + vary)#(64, 255, 255)
 minSize = 150 # of contour, incase there are two
@@ -55,7 +55,7 @@ def findCube(image):
             x, y, w, h = cv2.boundingRect(contour)
             #If facing head on the ratio of h/w is 11/13    ~= 0.84615384615
             #If facing at 45 degrees the ratio of h/w is 11/(13 * sqrt(2)) ~= 0.59832112254
-            if w * h >= minSize and abs(h/w) > 0.5 and abs(h/w) < .95:
+            if w * h >= minSize and abs(h/w) > 0.4 and abs(h/w) < 1.05:
                 cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 3)
                 #box = image[y:(y + h), x:(x + w)] #show a frame only of the box
                 cx, cy = x + w / 2, y + h / 2
@@ -140,7 +140,7 @@ def picamvidopencv():
     camera = PiCamera()
     camera.resolution = (640, 480)
     camera.framerate = 32
-    camera.shutter_speed = 18000 #18000 for cube #2448 for Tape
+    camera.shutter_speed = 21000 #18000 for cube #2448 for Tape
     rawCapture = PiRGBArray(camera, size=(640, 480))
     crosshair = [320, 240]
     toggle_rectangles = True
