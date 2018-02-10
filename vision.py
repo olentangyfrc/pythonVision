@@ -51,6 +51,7 @@ def main():
     # allow the camera to warmup
     time.sleep(0.1)
 
+
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         # Get image
         image = frame.array
@@ -82,33 +83,32 @@ def main():
         contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
         if len(contours) > 0:
+            best_contour = {'contour': None, 'size': 0}
             for contour in contours:
                 x, y, w, h = cv2.boundingRect(contour)
                 # If facing head on the ratio of h/w is 11/13    ~= 0.84615384615
                 # If facing at 45 degrees the ratio of h/w is 11/(13 * sqrt(2)) ~= 0.59832112254
-                if w * h >= minSize:
-                    if abs(h / w) > 0.5:  # and abs(h/w) < 0.9: #no reason to be too tall, if there is a stack it will line up regardless
-                        cv2.rectangle(image, (x, y), (x + w, y + h), red, 3)
-                        # box = image[y:(y + h), x:(x + w)] #show a frame only of the box
-                        cx, cy = x + w / 2, y + h / 2
+                size = w * h
+                if size >= minSize and abs(h / w) > 0.5:  # and abs(h/w) < 0.9: #no reason to be too tall, if there is a stack it will line up regardless:
+                    if size > best_contour['size']:
+                        best_contour = {'contour': contour, 'size': size}
 
-                        offset = 320 - cx
-                        angle = offset * (62.2 / 640)
+            if best_contour['contour'] is not None:
+                x, y, w, h = cv2.boundingRect(best_contour['contour'])
+                cv2.rectangle(image, (x, y), (x + w, y + h), red, 3)
+                # box = image[y:(y + h), x:(x + w)] #show a frame only of the box
+                cx, cy = x + w / 2, y + h / 2
 
-                        straightDistance = ((heightBox * 480 / 2) / h) / (
-                        math.tan(fieldOfView))  # Perpendicular distance
-                        distance = straightDistance / math.cos(abs(math.radians(angle)))
-                        horizontalDistance = math.sqrt(distance * distance - straightDistance * straightDistance)
+                offset = 320 - cx
+                angle = offset * (62.2 / 640)
+                straightDistance = ((heightBox * 480 / 2) / h) / (
+                math.tan(fieldOfView))  # Perpendicular distance
+                distance = straightDistance / math.cos(abs(math.radians(angle)))
+                horizontalDistance = math.sqrt(distance * distance - straightDistance * straightDistance)
+                # if angle < 0:
+                #     horizontalDistance = horizontalDistance * -1
 
-                        found = True
-                    else:
-                        # Blue means it sees it but ratios are off. Is there another box aside, or behind? "we may never know"
-                        cropped = image[y:(y + h), x:(x + w)]
-                        cv2.rectangle(image, (x, y), (x + w, y + h), blue, 3)
-
-                        # failed to get most recent point
-                        # extBot = tuple(cropped[cropped[:, :, 1].argmax()][0])
-                        # cv2.circle(image, extBot, 10, (255, 255, 255), -1)
+                found = True
 
 
         # Publish Angle & Distance
