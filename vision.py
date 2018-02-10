@@ -55,21 +55,32 @@ def findCube(image):
             x, y, w, h = cv2.boundingRect(contour)
             #If facing head on the ratio of h/w is 11/13    ~= 0.84615384615
             #If facing at 45 degrees the ratio of h/w is 11/(13 * sqrt(2)) ~= 0.59832112254
-            if w * h >= minSize and abs(h/w) > 0.4 and abs(h/w) < 1.05:
-                cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 3)
-                #box = image[y:(y + h), x:(x + w)] #show a frame only of the box
-                cx, cy = x + w / 2, y + h / 2
+            if w * h >= minSize:
+                if abs(h/w) > 0.7: #and abs(h/w) < 0.9: #no reason to be too tall, if there is a stack it will line up regardless
+                    cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 3)
+                    #box = image[y:(y + h), x:(x + w)] #show a frame only of the box
+                    cx, cy = x + w / 2, y + h / 2
 
-                offset = 320 - cx
-                angle = offset * (62.2 / 640)
+                    offset = 320 - cx
+                    angle = offset * (62.2 / 640)
 
-                straightDistance = ((heightBox * 480 / 2) / h) / (math.tan(fieldOfView))  # Perpendicular distance
-                distance = straightDistance / math.cos(abs(math.radians(angle)))
-                horizontalDistance = math.sqrt(distance * distance - straightDistance * straightDistance)
+                    straightDistance = ((heightBox * 480 / 2) / h) / (math.tan(fieldOfView))  # Perpendicular distance
+                    distance = straightDistance / math.cos(abs(math.radians(angle)))
+                    horizontalDistance = math.sqrt(distance * distance - straightDistance * straightDistance)
 
-                found = True
+                    found = True
 
-                return found, angle, distance, horizontalDistance, len(contours), hsv, phase1
+                    return found, angle, distance, horizontalDistance, len(contours), hsv, phase1
+                else:
+                    #Blue means it sees it but ratios are off. Is there another box aside, or behind? "we may never know"
+                     cropped = image[y:(y + h), x:(x + w)]
+                     cv2.rectangle(image, (x, y), (x + w, y + h), (255, 0, 0), 3)
+
+                     #failed to get most recent point
+                     #extBot = tuple(cropped[cropped[:, :, 1].argmax()][0])
+                     #cv2.circle(image, extBot, 10, (255, 255, 255), -1)
+
+
     return found, angle, distance, horizontalDistance, len(contours), hsv, phase1
 
 def findTape(image):
