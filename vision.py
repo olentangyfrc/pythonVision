@@ -11,6 +11,13 @@ from picamera import PiCamera
 from networktables import NetworkTables
 
 
+def adjust_hsv(name, val, delta, nettable):
+    val += delta
+    val = min(255, max(0, val))
+    nettable.putNumber(name, val)
+    return val
+
+
 def main():
     # convenience variables
     red = (0, 0, 255)
@@ -119,12 +126,15 @@ def main():
 
         # show the frame
         if options.show:
+            hsvtext = str(color_hue_min) + "," + str(color_sat_min) + "," + str(color_val_min) + " " +\
+                      str(color_hue_max) + "," + str(color_sat_max) + "," + str(color_val_max)
+            cv2.putText(image, "HSV: " + hsvtext, (0, 20), cv2.FONT_HERSHEY_PLAIN, 1, white, 1, 8)
+            cv2.putText(image, "Contours:" + str(len(contours)), (0, 40), cv2.FONT_HERSHEY_PLAIN, 1, white, 1, 8)
+            cv2.putText(image, "(S)hutter: " + str(camera.shutter_speed), (0, 60), cv2.FONT_HERSHEY_PLAIN, 1, white, 1, 8)
             cv2.putText(image, "Angle: " + str(angle), (20, 400), cv2.FONT_HERSHEY_PLAIN, 1.5, white, 2, 8)
             cv2.putText(image, "Distance: " + str(distance), (20, 420), cv2.FONT_HERSHEY_PLAIN, 1.5, white, 2, 8)
             cv2.putText(image, "H Distance: " + str(horizontalDistance), (20, 380), cv2.FONT_HERSHEY_PLAIN, 1.5, white, 2, 8)
             cv2.putText(image, str(found), (20, 440), cv2.FONT_HERSHEY_PLAIN, 1.5, white, 2, 4)
-            cv2.putText(image, "Contours:" + str(len(contours)), (0, 20), cv2.FONT_HERSHEY_PLAIN, 1, white, 1, 8)
-            cv2.putText(image, "(S)hutter: " + str(camera.shutter_speed), (0, 40), cv2.FONT_HERSHEY_PLAIN, 1, white, 1, 8)
             cv2.imshow("Image", image)
             cv2.imshow("Mask", phase1)
 
@@ -139,6 +149,31 @@ def main():
         if key == ord("s"):
             camera.shutter_speed += -1000
             nettable.putNumber('shutter_speed', camera.shutter_speed)
+        if key == ord("I"):
+            color_hue_max = adjust_hsv('color_hue_max', color_hue_max, 5, nettable)
+        if key == ord("J"):
+            color_hue_max = adjust_hsv('color_hue_max', color_hue_max, -5, nettable)
+        if key == ord("O"):
+            color_sat_max = adjust_hsv('color_sat_max', color_sat_max, 5, nettable)
+        if key == ord("K"):
+            color_sat_max = adjust_hsv('color_sat_max', color_sat_max, -5, nettable)
+        if key == ord("P"):
+            color_val_max = adjust_hsv('color_val_max', color_val_max, 5, nettable)
+        if key == ord("L"):
+            color_val_max = adjust_hsv('color_val_max', color_val_max, -5, nettable)
+        if key == ord("i"):
+            color_hue_min = adjust_hsv('color_hue_min', color_hue_min, 5, nettable)
+        if key == ord("j"):
+            color_hue_min = adjust_hsv('color_hue_min', color_hue_min, -5, nettable)
+        if key == ord("o"):
+            color_sat_min = adjust_hsv('color_sat_min', color_sat_min, 5, nettable)
+        if key == ord("k"):
+            color_sat_min = adjust_hsv('color_sat_min', color_sat_min, -5, nettable)
+        if key == ord("p"):
+            color_val_min = adjust_hsv('color_val_min', color_val_min, 5, nettable)
+        if key == ord("l"):
+            color_val_min = adjust_hsv('color_val_min', color_val_min, -5, nettable)
+
         if key == ord("q"):  # if the `q` key was pressed, break from the loop
             break
 
