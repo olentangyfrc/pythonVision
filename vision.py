@@ -9,6 +9,7 @@ import argparse
 from picamera.array import PiRGBArray
 from picamera import PiCamera
 from networktables import NetworkTables
+from datetime import datetime
 
 
 def adjust_hsv(name, val, delta, nettable):
@@ -27,6 +28,16 @@ def main():
     # Camera Variables
     fieldOfView = math.radians(48.8 / 2)  # input degrees
     heightBox = 11
+    #offset = 3 # inches
+    #Position X should be negative for offset
+    #Position Y should be positive for offset
+    #  /-X-----Y-\
+    #  |  FRONT  |/\
+    #  |         |\/
+    #  |         |
+    #  |         |/\
+    #  |   BACK  |\/
+    #  \---------/
 
     # Cube Variables
     color_hue_min = 0
@@ -60,6 +71,7 @@ def main():
 
 
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        nettable.putString('current_ts', datetime.now())
         # Get image
         image = frame.array
 
@@ -114,6 +126,7 @@ def main():
                 horizontalDistance = math.sqrt(distance * distance - straightDistance * straightDistance)
                 # if angle < 0:
                 #     horizontalDistance = horizontalDistance * -1
+                #horizontalDistance = horizontalDistance - offset
 
                 found = True
 
