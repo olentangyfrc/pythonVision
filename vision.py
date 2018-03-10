@@ -28,6 +28,7 @@ def main():
     # Camera Variables
     fieldOfView = math.radians(48.8 / 2)  # input degrees
     heightBox = 11
+
     #offset = 3 # inches
     #Position X should be negative for offset
     #Position Y should be positive for offset
@@ -79,19 +80,20 @@ def main():
         angle = 0.0
         horizontalDistance = 0.0
         distance = 0.0
+        heightWidthRatio = 0.0
         found = False
 
-        camera.shutter_speed = int(nettable.getNumber('shutter_speed', camera.shutter_speed))
+        camera.shutter_speed = int(camera.shutter_speed)
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv,
                            np.array(
-                               [nettable.getNumber('color_hue_min', color_hue_min),
-                                nettable.getNumber('color_sat_min', color_sat_min),
-                                nettable.getNumber('color_val_min', color_val_min)]),
+                               [color_hue_min,
+                                color_sat_min,
+                                color_val_min]),
                            np.array(
-                               [nettable.getNumber('color_hue_max', color_hue_max),
-                                nettable.getNumber('color_sat_max', color_sat_max),
-                                nettable.getNumber('color_val_max', color_val_max)])
+                               [ color_hue_max,
+                                color_sat_max,
+                                color_val_max])
                            )
         mask = cv2.blur(mask, (10, 10))
         mask = cv2.erode(mask, None, iterations=20)
@@ -108,7 +110,8 @@ def main():
                 # If facing head on the ratio of h/w is 11/13    ~= 0.84615384615
                 # If facing at 45 degrees the ratio of h/w is 11/(13 * sqrt(2)) ~= 0.59832112254
                 size = w * h
-                if size >= minSize and abs(h / w) > 0.5:  # and abs(h/w) < 0.9: #no reason to be too tall, if there is a stack it will line up regardless:
+                heightWidthRatio = abs(h / w)
+                if size >= minSize and abs(h / w) > 0.5 and (h + y) < 479 and y > 1:  # and abs(h/w) < 0.9: #no reason to be too tall, if there is a stack it will line up regardless:
                     if size > best_contour['size']:
                         best_contour = {'contour': contour, 'size': size}
 
@@ -135,7 +138,17 @@ def main():
         nettable.putNumber('angle', float(angle))
         nettable.putNumber('horizontalDistance', float(horizontalDistance))
         nettable.putNumber('distance', float(distance))
+        nettable.putNumber('heightWidthRatio', float(heightWidthRatio))
         nettable.putBoolean('found', found)
+
+        #0 false,  1 true
+        #foundNumber = 0
+        #if found:
+        #    foundNumber = 1
+
+        #nettable.putString(str(angle) + ", " + str(horizontalDistance) + ", " + str(distance) + ", " + str(heightWidthRatio) + ", " + str(foundNumber))
+        #example string that will be sent in the future "35, 35, 35, 35, 0"
+
 
         # show the frame
         if options.show:
